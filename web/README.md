@@ -8,7 +8,7 @@ Claude 아티팩트 버전(`../index.html`)을 React + Vite + Firebase로 이식
 1. https://console.firebase.google.com 에서 새 프로젝트 생성
 2. **Firestore Database** 만들기 (프로덕션 모드로 시작해도 됨 — 규칙은 이미 `firestore.rules`에 있음)
 3. **Storage** 활성화 (사진 저장용)
-4. **Authentication** → Sign-in method → **익명(Anonymous)** 활성화
+4. **Authentication** → Sign-in method → **이메일/비밀번호**, **Google** 활성화. 카카오 로그인은 추가로 "OpenID Connect" 공급자를 Provider ID `oidc.kakao`로 직접 만들어야 합니다 (자세한 내용은 `web/src/lib/firebase.js` 참고)
 5. 프로젝트 개요 → 웹 앱 추가(</> 아이콘) → 나오는 `firebaseConfig` 객체 값을 복사
 
 ### 2. Google Maps API 키 만들기
@@ -53,5 +53,4 @@ firebase deploy
 
 ## 아직 없는 기능 (다음 단계)
 
-- AI 맛집 추천 — Anthropic API를 서버에서 호출해야 해서 Firebase Blaze 요금제 업그레이드 후 별도 작업 필요
-- 정식 로그인/이메일 인증, 결제, 앱스토어 패키징
+- 결제(유료 기능/구독 등)
