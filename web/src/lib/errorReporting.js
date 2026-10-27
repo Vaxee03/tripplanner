@@ -2,7 +2,11 @@
 // (Cloud Logging), so a failure someone hits in production can be diagnosed
 // without asking them for screenshots. Only active in real deployed builds —
 // local dev and the emulator just keep logging to the console.
+// In the Android app the same errors also go to Firebase Crashlytics as
+// non-fatal reports.
+import { FirebaseCrashlytics } from "@capacitor-firebase/crashlytics";
 import { callFunction, firebaseReady } from "./firebase";
+import { isNativeApp } from "./platform";
 
 const enabled = import.meta.env.PROD && import.meta.env.VITE_USE_EMULATORS !== "1" && firebaseReady;
 const MAX_PER_SESSION = 20;
@@ -26,6 +30,31 @@ export function reportError(err, where = "") {
     userAgent: navigator.userAgent,
     release: __APP_RELEASE__,
   }).catch(() => {});
+  if (isNativeApp) recordNativeException(message, where, err?.stack);
+}
+
+/** Turns a V8 (Android WebView) stack string into the StackFrame[] shape the
+ * Crashlytics plugin expects: "at fn (file:line:col)" or "at file:line:col". */
+function parseStack(stack) {
+  if (typeof stack !== "string") return undefined;
+  const frames = [];
+  for (const line of stack.split("\n")) {
+    const m = line.match(/^\s*at (?:(.+?) \()?(.+?):(\d+):\d+\)?\s*$/);
+    if (m) frames.push({ functionName: m[1] || "<anonymous>", fileName: m[2], lineNumber: Number(m[3]) });
+  }
+  return frames.length ? frames : undefined;
+}
+
+/** Best-effort: a Crashlytics failure must never break or re-enter reportError. */
+function recordNativeException(message, where, stack) {
+  try {
+    const options = { message, keysAndValues: [{ key: "where", value: where || "error", type: "string" }] };
+    const stacktrace = parseStack(stack);
+    if (stacktrace) options.stacktrace = stacktrace;
+    FirebaseCrashlytics.recordException(options).catch(() => {});
+  } catch {
+    // ignore
+  }
 }
 
 /** Catches anything nobody else handled — uncaught errors and rejected
